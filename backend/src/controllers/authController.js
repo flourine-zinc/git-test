@@ -12,7 +12,7 @@ export const authController = {
       res.cookie("oauth_state", state, {
         httpOnly: true,
         secure: config.cookie.secure,
-        sameSite: config.cookie.secure ? "strict" : "lax",
+        sameSite: config.cookie.secure ? "none" : "lax",
         maxAge: 10 * 60 * 1000, // 10 minutes
         path: "/",
       });
