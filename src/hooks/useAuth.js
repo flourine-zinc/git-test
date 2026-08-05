@@ -28,12 +28,16 @@ export function useAuth() {
       setState(AUTH_STATE.AUTHENTICATED);
     } catch (err) {
       if (err.status === 401) {
+        // Definitive: the server rejected the session cookie.
         setUser(null);
         setProfile(null);
         setState(AUTH_STATE.UNAUTHENTICATED);
       } else {
-        setError(err.message);
-        setState(AUTH_STATE.UNAUTHENTICATED);
+        // Network/CORS/5xx errors are NOT proof of being logged out — the
+        // server might be redeploying or briefly unreachable. Stay in LOADING
+        // and retry shortly instead of bouncing to the Login screen.
+        setError(err.message || "Could not reach the server. Retrying…");
+        setState(AUTH_STATE.LOADING);
       }
     }
   }, []);
@@ -41,6 +45,16 @@ export function useAuth() {
   useEffect(() => {
     checkSession();
   }, [checkSession]);
+
+  // Retry the session check when the server was unreachable (network/CORS/5xx),
+  // so a transient deploy or blip doesn't leave users stuck on Loading.
+  useEffect(() => {
+    if (state !== AUTH_STATE.LOADING) return;
+    const timer = setTimeout(() => {
+      checkSession();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [state, checkSession]);
 
   const logout = useCallback(async () => {
     try {

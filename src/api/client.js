@@ -7,7 +7,13 @@
  * (same-site → SameSite=Lax cookies are attached; CORS allowlists the app origin).
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1";
+// Production fallback: if VITE_API_URL isn't configured on Vercel, default to
+// the Render backend. Local dev still falls back to localhost:4000.
+const PROD_API_URL = "https://git-test-vnpu.onrender.com/api/v1";
+
+const BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? PROD_API_URL : "http://localhost:4000/api/v1");
 
 async function request(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {

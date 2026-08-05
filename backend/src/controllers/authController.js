@@ -56,8 +56,15 @@ export const authController = {
       const { user, sessionToken } = await authService.googleCallback(code);
       setAuthCookie(res, sessionToken);
 
-      // Clear state cookie
-      res.clearCookie("oauth_state", { path: "/" });
+      // Clear state cookie — must match the attributes it was set with
+      // (secure + sameSite), otherwise browsers ignore the deletion for
+      // SameSite=None; Secure cookies.
+      res.clearCookie("oauth_state", {
+        httpOnly: true,
+        secure: config.cookie.secure,
+        sameSite: config.cookie.secure ? "none" : "lax",
+        path: "/",
+      });
 
       // Redirect back to frontend (config.appRedirectUrl is always absolute)
       return res.redirect(config.appRedirectUrl);
