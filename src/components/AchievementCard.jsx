@@ -27,16 +27,18 @@ export default function AchievementCard({ achievements = [] }) {
               className={`achievement-card__item${achievement.unlocked ? " achievement-card__item--unlocked" : " achievement-card__item--locked"}`}
               key={achievement.id}
             >
-              <span className="achievement-card__icon" aria-hidden="true">
-                {achievement.unlocked ? achievement.icon : "🔒"}
-              </span>
               <div className="achievement-card__body">
-                <span className="achievement-card__title">
-                  {achievement.title}
+                <span className="achievement-card__icon" aria-hidden="true">
+                  {achievement.unlocked ? achievement.icon : "🔒"}
                 </span>
-                <span className="achievement-card__desc">
-                  {achievement.description}
-                </span>
+                <div className="achievement-card__text">
+                  <span className="achievement-card__title">
+                    {achievement.title}
+                  </span>
+                  <span className="achievement-card__desc">
+                    {achievement.description}
+                  </span>
+                </div>
               </div>
               {!achievement.unlocked && (
                 <XPBar

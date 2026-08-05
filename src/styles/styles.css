@@ -45,6 +45,7 @@
 
 html {
   font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -61,7 +62,7 @@ body {
       transparent 60%
     ),
     var(--color-bg);
-  background-attachment: fixed;
+  background-attachment: scroll;
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -70,6 +71,9 @@ body {
 button {
   font-family: inherit;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 input,
@@ -85,9 +89,13 @@ select {
 /* ===== App Layout ===== */
 .app {
   min-height: 100vh;
+  min-height: 100dvh;
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-xl) var(--space-md) var(--space-xl);
+  padding: calc(var(--space-xl) + env(safe-area-inset-top, 0px))
+    calc(var(--space-md) + env(safe-area-inset-right, 0px))
+    calc(var(--space-xl) + env(safe-area-inset-bottom, 0px))
+    calc(var(--space-md) + env(safe-area-inset-left, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -507,6 +515,7 @@ select {
 
 .focus-timer__button {
   padding: var(--space-sm) var(--space-lg);
+  min-height: 44px;
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
@@ -642,6 +651,9 @@ select {
   background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 .achievement-card__item--unlocked {
@@ -653,14 +665,25 @@ select {
   opacity: 0.8;
 }
 
-.achievement-card__item {
+.achievement-card__body {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
 }
 
 .achievement-card__icon {
-  font-size: 1.2rem;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.achievement-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .achievement-card__title {
@@ -671,6 +694,11 @@ select {
 .achievement-card__desc {
   font-size: 0.78rem;
   color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.achievement-card__item .xp-bar {
+  padding-top: 2px;
 }
 
 .achievement-card__empty {
@@ -694,7 +722,8 @@ select {
 .todo-form__input,
 .todo-form__select {
   padding: var(--space-sm) var(--space-md);
-  font-size: 0.95rem;
+  min-height: 44px;
+  font-size: 1rem;
   color: var(--color-text);
   background-color: #12151f;
   border: 1px solid var(--color-border);
@@ -718,6 +747,7 @@ select {
 
 .todo-form__submit {
   padding: var(--space-sm) var(--space-lg);
+  min-height: 44px;
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
@@ -772,7 +802,8 @@ select {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  min-height: 44px;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -812,6 +843,7 @@ select {
 
 .todo-filter__select {
   padding: var(--space-xs) var(--space-sm);
+  min-height: 44px;
   font-size: 0.875rem;
   color: var(--color-text);
   background-color: #12151f;
@@ -869,8 +901,8 @@ select {
 }
 
 .todo-item__checkbox {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   accent-color: var(--color-primary);
   flex-shrink: 0;
 }
@@ -918,8 +950,10 @@ select {
   flex-shrink: 0;
 }
 
-.todo-item__button {
-  padding: var(--space-xs) var(--space-sm);
+.todo-item__button,
+.todo-item__cancel {
+  padding: var(--space-sm) var(--space-md);
+  min-height: 44px;
   font-size: 0.85rem;
   color: var(--color-primary-hover);
   background-color: transparent;
@@ -946,12 +980,7 @@ select {
 
 .todo-item__cancel {
   align-self: flex-start;
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 0.85rem;
   color: var(--color-text-muted);
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
 }
 
 .todo-item__cancel:hover {
@@ -970,9 +999,12 @@ select {
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .app {
-    padding: var(--space-lg) var(--space-sm);
+    padding: calc(var(--space-lg) + env(safe-area-inset-top, 0px))
+      calc(var(--space-md) + env(safe-area-inset-right, 0px))
+      calc(var(--space-lg) + env(safe-area-inset-bottom, 0px))
+      calc(var(--space-md) + env(safe-area-inset-left, 0px));
   }
 
   .app__title {
@@ -982,6 +1014,10 @@ select {
   .stats-card__grid,
   .achievement-card__grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .card {
+    padding: var(--space-md);
   }
 
   .todo-form__row,
@@ -995,11 +1031,48 @@ select {
 
   .todo-item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: var(--space-sm);
   }
 
   .todo-item__actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .todo-filter__row {
+    column-gap: var(--space-sm);
+  }
+}
+
+@media (max-width: 360px) {
+  .app__title {
+    font-size: 1.45rem;
+  }
+
+  .app__subtitle {
+    font-size: 0.85rem;
+  }
+
+  .stats-card__grid,
+  .achievement-card__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-card__top {
+    flex-direction: column;
+  }
+
+  .focus-timer__time {
+    font-size: 2.5rem;
+  }
+
+  .todo-item__actions {
+    flex-wrap: wrap;
+  }
+
+  .todo-item__actions .todo-item__button {
+    flex: 1;
+    min-width: 0;
   }
 }

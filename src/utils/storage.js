@@ -2,6 +2,55 @@ import { getXpForPriority } from "./gameMath.js";
 
 const STORAGE_KEY = "todos";
 
+/**
+ * Schema version for all persisted data. Bump when the data shape
+ * changes; `ensureStorageVersion` runs any needed migrations at
+ * app boot so old saves keep working.
+ */
+export const STORAGE_VERSION = 2;
+
+/** Key under which the storage schema version is persisted. */
+const STORAGE_VERSION_KEY = "gamify.storageVersion";
+
+/**
+ * True when localStorage can be read and written (private mode,
+ * sandboxed iframes, and disabled storage return false).
+ */
+export function isStorageAvailable() {
+  try {
+    const testKey = "__quest_log_storage_test__";
+    window.localStorage.setItem(testKey, "1");
+    window.localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ensures the storage schema version is persisted and runs any
+ * migrations needed for older saves. All loaders already normalize
+ * legacy shapes, so the version marker primarily documents the
+ * schema and reserves a hook for future migrations.
+ */
+export function ensureStorageVersion() {
+  if (!isStorageAvailable()) {
+    return false;
+  }
+  try {
+    const storedVersion = Number(
+      window.localStorage.getItem(STORAGE_VERSION_KEY),
+    );
+    if (!Number.isFinite(storedVersion) || storedVersion < STORAGE_VERSION) {
+      // Future migrations go here, keyed off the old version.
+      window.localStorage.setItem(STORAGE_VERSION_KEY, String(STORAGE_VERSION));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Key under which the gamified user profile is persisted. */
 const PROFILE_STORAGE_KEY = "gamify.user";
 

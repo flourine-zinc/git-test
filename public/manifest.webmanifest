@@ -1,0 +1,33 @@
+{
+  "name": "Quest Log — RPG Productivity",
+  "short_name": "Quest Log",
+  "description": "Turn your tasks into quests. Earn XP, level up, and build streaks with this RPG productivity app.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#8b5cf6",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Quest",
+      "url": "/?action=new",
+      "description": "Quickly add a new task"
+    }
+  ]
+}
