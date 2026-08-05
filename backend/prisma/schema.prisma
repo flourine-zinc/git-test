@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Core identity ----------
+
+model User {
+  id            String    @id @default(cuid())
+  googleSub     String    @unique @map("google_sub")
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  username      String    @unique
+  avatarUrl     String?   @map("avatar_url")
+  lastLoginAt   DateTime? @map("last_login_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  profile            Profile?
+  sessions           Session[]
+  streaks            StreakHistory[]
+  todos              Todo[]
+  focusSessions      FocusSession[]
+  achievements       UserAchievement[]
+  missionProgress    DailyMissionProgress[]
+  sentRequests       FriendRequest[]      @relation("FriendRequestSender")
+  receivedRequests   FriendRequest[]      @relation("FriendRequestReceiver")
+  friendships        Friendship[]         @relation("FriendshipUser")
+  friendOf           Friendship[]         @relation("FriendshipFriend")
+  teamsCreated       Team[]               @relation("TeamCreator")
+  teamMemberships    TeamMember[]
+  teamTasksCreated   TeamTask[]           @relation("TeamTaskCreator")
+  teamTasksAssigned  TeamTask[]           @relation("TeamTaskAssignee")
+  teamTasksCompleted TeamTask[]           @relation("TeamTaskCompleter")
+  taskContributions  TeamTaskContribution[]
+  teamFocusSessions  TeamFocusSession[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  userAgent  String?   @map("user_agent")
+  ip         String?
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ---------- Game data ----------
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique @map("user_id")
+  level              Int      @default(1)
+  xp                 Int      @default(0)
+  rank               String   @default("Beginner")
+  currentStreak      Int      @default(0) @map("current_streak")
+  bestStreak         Int      @default(0) @map("best_streak")
+  lastCompletedDay   DateTime? @map("last_completed_day")
+  totalCompletedTasks Int     @default(0) @map("total_completed_tasks")
+  totalFocusMinutes  Int      @default(0) @map("total_focus_minutes")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model StreakHistory {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  day         DateTime @db.Date
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@map("streak_history")
+}
+
+// ---------- Tasks ----------
+
+model Todo {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  title       String
+  completed   Boolean   @default(false)
+  priority    String    @default("medium")
+  category    String    @default("general")
+  xpReward    Int       @default(0) @map("xp_reward")
+  dueDate     DateTime? @map("due_date")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("todos")
+}
+
+// ---------- Focus ----------
+
+model FocusSession {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  startedAt       DateTime @default(now()) @map("started_at")
+  endedAt         DateTime @map("ended_at")
+  durationMinutes Int      @map("duration_minutes")
+  source          String   @default("solo")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("focus_sessions")
+}
+
+// ---------- Achievements ----------
+
+model Achievement {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  title       String
+  description String
+  icon        String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ---------- Daily missions ----------
+
+model DailyMissionTemplate {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  type      String
+  label     String
+  target    Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  progress DailyMissionProgress[]
+
+  @@map("daily_mission_templates")
+}
+
+model DailyMissionProgress {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  templateId String   @map("template_id")
+  day        DateTime @db.Date
+  progress   Int      @default(0)
+  completed  Boolean  @default(false)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template DailyMissionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId, day])
+  @@map("daily_mission_progress")
+}
+
+// ---------- Friends ----------
+
+model FriendRequest {
+  id          String    @id @default(cuid())
+  senderId    String    @map("sender_id")
+  receiverId  String    @map("receiver_id")
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  respondedAt DateTime? @map("responded_at")
+
+  sender   User @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@map("friend_requests")
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  friendId  String   @map("friend_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User @relation("FriendshipUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@map("friendships")
+}
+
+// ---------- Teams ----------
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  avatarUrl   String?  @map("avatar_url")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator User       @relation("TeamCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  members TeamMember[]
+  tasks   TeamTask[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String   @map("team_id")
+  userId   String   @map("user_id")
+  role     String   @default("member")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model TeamTask {
+  id           String    @id @default(cuid())
+  teamId       String    @map("team_id")
+  title        String
+  description  String?
+  status       String    @default("open")
+  createdBy    String    @map("created_by")
+  assignedTo   String?   @map("assigned_to")
+  completedBy  String?   @map("completed_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  completedAt  DateTime? @map("completed_at")
+
+  team        Team                    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  creator     User                    @relation("TeamTaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  assignee    User?                   @relation("TeamTaskAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  completer   User?                   @relation("TeamTaskCompleter", fields: [completedBy], references: [id], onDelete: SetNull)
+  contributions TeamTaskContribution[]
+  focusSessions  TeamFocusSession[]
+
+  @@index([teamId])
+  @@map("team_tasks")
+}
+
+model TeamTaskContribution {
+  id            String   @id @default(cuid())
+  teamTaskId    String   @map("team_task_id")
+  userId        String   @map("user_id")
+  focusMinutes  Int      @default(0) @map("focus_minutes")
+  taskCompleted Boolean  @default(false) @map("task_completed")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  teamTask TeamTask @relation(fields: [teamTaskId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamTaskId, userId])
+  @@map("team_task_contributions")
+}
+
+model TeamFocusSession {
+  id              String   @id @default(cuid())
+  teamTaskId      String   @map("team_task_id")
+  userId          String   @map("user_id")
+  startedAt       DateTime @default(now()) @map("started_at")
+  endedAt         DateTime @map("ended_at")
+  durationMinutes Int      @map("duration_minutes")
+
+  teamTask TeamTask @relation(fields: [teamTaskId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamTaskId])
+  @@map("team_focus_sessions")
+}
