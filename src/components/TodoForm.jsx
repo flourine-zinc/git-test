@@ -1,17 +1,25 @@
 import { useState } from "react";
 import { validateTitle } from "../utils/storage.js";
+import { CATEGORIES, PRIORITIES } from "../constants/gameConfig.js";
+import { PRIORITY_XP } from "../utils/gameMath.js";
 
 /**
- * Handles creating a new task (and is reused for inline editing
- * by TodoItem with a different submit handler).
+ * Handles creating a new task. In edit mode (reused by TodoItem)
+ * initialPriority / initialCategory seed the selectors and the
+ * submit handler receives (title, priority, category).
  */
 export default function TodoForm({
   onAdd,
   initialValue = "",
+  initialPriority = "medium",
+  initialCategory = "personal",
   submitLabel = "Add",
   onSubmitSuccess,
+  showDetails = true,
 }) {
   const [title, setTitle] = useState(initialValue);
+  const [priority, setPriority] = useState(initialPriority);
+  const [category, setCategory] = useState(initialCategory);
   const [error, setError] = useState(null);
 
   function handleSubmit(event) {
@@ -22,9 +30,11 @@ export default function TodoForm({
       return;
     }
 
-    const success = onAdd(title);
+    const success = onAdd(title, priority, category);
     if (success) {
       setTitle("");
+      setPriority("medium");
+      setCategory("personal");
       setError(null);
       onSubmitSuccess?.();
     }
@@ -49,6 +59,48 @@ export default function TodoForm({
           {submitLabel}
         </button>
       </div>
+
+      {showDetails && (
+        <div className="todo-form__details">
+          <div className="todo-form__field">
+            <label className="todo-form__label" htmlFor="todo-priority">
+              Priority
+            </label>
+            <select
+              id="todo-priority"
+              className="todo-form__select"
+              value={priority}
+              onChange={(event) => setPriority(event.target.value)}
+              aria-label="Task priority"
+            >
+              {Object.entries(PRIORITIES).map(([value, meta]) => (
+                <option key={value} value={value}>
+                  {meta.label} (+{PRIORITY_XP[value]} XP)
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="todo-form__field">
+            <label className="todo-form__label" htmlFor="todo-category">
+              Category
+            </label>
+            <select
+              id="todo-category"
+              className="todo-form__select"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              aria-label="Task category"
+            >
+              {Object.entries(CATEGORIES).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {error && (
         <p className="todo-form__error" role="alert">
           {error}

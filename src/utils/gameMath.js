@@ -1,20 +1,30 @@
 /**
- * Pure gameplay math: XP, levels, ranks, and formatting.
+ * Pure gameplay math: XP, levels, ranks, priorities, and formatting.
  * These functions have no UI or storage dependencies so they can
  * be reused and unit-tested in isolation.
  */
 
-/** Base XP granted for completing a task. */
-export const TASK_COMPLETION_XP = 10;
-
-/** Flat XP required to advance one level. */
+/** XP required to advance one level. */
 export const XP_PER_LEVEL = 100;
+
+/** XP rewarded per minute of a completed focus session. */
+export const FOCUS_XP_PER_MINUTE = 1;
+
+/** XP reward by task priority. */
+export const PRIORITY_XP = {
+  low: 10,
+  medium: 25,
+  high: 50,
+  critical: 100,
+};
+
+/** Default XP used when a todo has no stored reward. */
+export const DEFAULT_TASK_XP = PRIORITY_XP.medium;
 
 /**
  * Rank thresholds by accumulated focus time (in minutes).
  * Sorted ascending — the highest threshold reached wins.
- * Values follow the gamification rules (0h / 50h / 100h / 250h / 500h / 1000h)
- * with Grandmaster added between Master and Legendary.
+ * Milestones follow the mastery rules: 0h / 50h / 100h / 250h / 500h / 1000h.
  */
 export const RANKS = [
   { title: "Beginner", minMinutes: 0 },
@@ -22,7 +32,6 @@ export const RANKS = [
   { title: "Disciplined", minMinutes: 100 * 60 },
   { title: "Elite", minMinutes: 250 * 60 },
   { title: "Master", minMinutes: 500 * 60 },
-  { title: "Grandmaster", minMinutes: 750 * 60 },
   { title: "Legendary", minMinutes: 1000 * 60 },
 ];
 
@@ -54,6 +63,11 @@ export function getLevelInfo(xp) {
       Math.floor((currentLevelXp / XP_PER_LEVEL) * 100),
     ),
   };
+}
+
+/** Returns the XP reward for a given priority. */
+export function getXpForPriority(priority) {
+  return PRIORITY_XP[priority] ?? DEFAULT_TASK_XP;
 }
 
 /** Returns the rank title for a given total of focus minutes. */
@@ -121,4 +135,13 @@ export function formatMinutes(minutes) {
     return `${hours}h`;
   }
   return `${hours}h ${remaining}m`;
+}
+
+/** Formats seconds as "MM:SS" (e.g. 305 -> "05:05"). */
+export function formatSeconds(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(minutes)}:${pad(seconds)}`;
 }

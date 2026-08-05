@@ -1,24 +1,8 @@
 import TodoItem from "./TodoItem.jsx";
 
-const EMPTY_MESSAGES = {
-  all: "No tasks yet. Add one above!",
-  active: "No active tasks. 🎉",
-  completed: "No completed tasks yet.",
-};
-
-export default function TodoList({
-  todos,
-  onToggle,
-  onEdit,
-  onDelete,
-  filter,
-}) {
+export default function TodoList({ todos, onToggle, onEdit, onDelete }) {
   if (todos.length === 0) {
-    return (
-      <p className="todo-list__empty">
-        {EMPTY_MESSAGES[filter] ?? EMPTY_MESSAGES.all}
-      </p>
-    );
+    return <p className="todo-list__empty">No matching tasks. 🎉</p>;
   }
 
   return (

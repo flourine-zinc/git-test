@@ -1,85 +1,153 @@
+import { useEffect, useMemo } from "react";
 import useTodos from "../hooks/useTodos.js";
 import useProgress from "../hooks/useProgress.js";
+import useDailyMission from "../hooks/useDailyMission.js";
+import useTimer from "../hooks/useTimer.js";
+import useStreak from "../hooks/useStreak.js";
+import useAchievements from "../hooks/useAchievements.js";
+
+import Dashboard from "./Dashboard.jsx";
+import DailyMission from "./DailyMission.jsx";
+import FocusTimer from "./FocusTimer.jsx";
+import MasteryCard from "./MasteryCard.jsx";
+import StreakCard from "./StreakCard.jsx";
+import AchievementCard from "./AchievementCard.jsx";
 import TodoForm from "./TodoForm.jsx";
 import TodoList from "./TodoList.jsx";
 import TodoFilter from "./TodoFilter.jsx";
-import TodoStats from "./TodoStats.jsx";
-import PlayerStatus from "./PlayerStatus.jsx";
 
 export default function TodoApp() {
+  const todos = useTodos();
   const progress = useProgress();
-  const {
-    todos,
-    visibleTodos,
-    remainingCount,
-    filter,
-    setFilter,
-    error,
-    addTodo,
-    toggleTodo,
-    editTodo,
-    deleteTodo,
-    clearError,
-  } = useTodos();
+  const timer = useTimer();
+  const streak = useStreak(progress.profile, progress.registerDayCompleted);
+  const dailyMission = useDailyMission();
+  const achievements = useAchievements(
+    progress.profile,
+    progress.unlockedAchievements,
+  );
 
-  const { profile, levelInfo, rankInfo, registerTaskCompleted } = progress;
+  // Persist any newly unlocked achievements.
+  useEffect(() => {
+    if (achievements.newlyUnlocked.length > 0) {
+      progress.unlockAchievements(achievements.newlyUnlocked);
+    }
+  }, [achievements.newlyUnlocked]);
 
-  /**
-   * Wraps the todo toggle so completing a task (not un-completing
-   * it) awards the player XP and counts toward the completed total.
-   */
+  const filterCounts = useMemo(() => {
+    const all = todos.todos.length;
+    const completed = todos.todos.filter((todo) => todo.completed).length;
+    return { all, active: all - completed, completed };
+  }, [todos.todos]);
+
   function handleToggleTodo(id) {
-    const todo = todos.find((item) => item.id === id);
-    const isCompleting = todo && !todo.completed;
-    toggleTodo(id);
-    if (isCompleting) {
-      registerTaskCompleted();
+    const todo = todos.todos.find((item) => item.id === id);
+    if (!todo) return;
+
+    if (!todo.completed) {
+      progress.registerTaskCompleted(todo.xpReward ?? 0);
+      progress.registerDayCompleted();
+      dailyMission.recordProgress("tasks", 1);
+    } else {
+      progress.registerTaskUncompleted(todo.xpReward ?? 0);
+    }
+
+    todos.toggleTodo(id);
+  }
+
+  function handleAddTodo(title, priority, category) {
+    return todos.addTodo(title, priority, category);
+  }
+
+  function handleEditTodo(id, title, priority, category) {
+    return todos.editTodo(id, title, priority, category);
+  }
+
+  function handleTimerComplete() {
+    const session = timer.complete();
+    if (!session) {
+      return;
+    }
+    const result = progress.addFocusSession({
+      startedAt: session.startedAt,
+      endedAt: session.endedAt,
+      durationMinutes: session.durationMinutes,
+    });
+    if (result) {
+      dailyMission.recordProgress("focus", result.session.durationMinutes);
+      dailyMission.recordProgress("xp", result.xpGained);
     }
   }
 
   return (
-    <main className="app">
-      <section className="app__card" aria-labelledby="app-title">
-        <h1 id="app-title" className="app__title">
-          Todo List
-        </h1>
-        <PlayerStatus
-          profile={profile}
-          levelInfo={levelInfo}
-          rankInfo={rankInfo}
+    <div className="app">
+      <header className="app__header">
+        <h1 className="app__title">⚔️ Quest Log</h1>
+        <p className="app__subtitle">Your RPG productivity dashboard</p>
+      </header>
+
+      <main className="app__layout">
+        <div className="app__dashboard">
+          <Dashboard
+            profile={progress.profile}
+            levelInfo={progress.levelInfo}
+            rankInfo={progress.rankInfo}
+            streak={{
+              currentStreak: streak.currentStreak,
+              bestStreak: streak.bestStreak,
+              showStreakWarning: streak.showStreakWarning,
+              isNewRecord: streak.isNewRecord,
+            }}
+            missionState={dailyMission.missionState}
+          />
+          <DailyMission missionState={dailyMission.missionState} />
+        </div>
+
+        <div className="app__content">
+          <TodoForm onAdd={handleAddTodo} />
+
+          <FocusTimer
+            status={timer.status}
+            secondsLeft={timer.secondsLeft}
+            totalSeconds={timer.totalSeconds}
+            onStart={timer.start}
+            onPause={timer.pause}
+            onResume={timer.resume}
+            onReset={timer.reset}
+            onComplete={handleTimerComplete}
+          />
+        </div>
+      </main>
+
+      <section className="app__trackers">
+        <MasteryCard totalFocusMinutes={progress.profile.totalFocusMinutes} />
+        <StreakCard
+          currentStreak={streak.currentStreak}
+          bestStreak={streak.bestStreak}
+          showStreakWarning={streak.showStreakWarning}
+          isStreakBroken={streak.isStreakBroken}
         />
-        <TodoForm onAdd={addTodo} />
+      </section>
+
+      <section className="app__todos" aria-label="Your quests">
         <TodoFilter
-          filter={filter}
-          onChange={setFilter}
-          counts={{
-            all: todos.length,
-            active: remainingCount,
-            completed: todos.length - remainingCount,
-          }}
+          filter={todos.filter}
+          onChange={todos.setFilter}
+          counts={filterCounts}
+          category={todos.category}
+          onCategoryChange={todos.setCategory}
         />
         <TodoList
-          todos={visibleTodos}
+          todos={todos.visibleTodos}
           onToggle={handleToggleTodo}
-          onEdit={editTodo}
-          onDelete={deleteTodo}
-          filter={filter}
+          onEdit={handleEditTodo}
+          onDelete={todos.deleteTodo}
         />
-        <TodoStats remainingCount={remainingCount} totalCount={todos.length} />
-        {error && (
-          <p className="app__error" role="alert">
-            <button
-              type="button"
-              className="app__error-close"
-              onClick={clearError}
-              aria-label="Dismiss error"
-            >
-              ×
-            </button>
-            {error}
-          </p>
-        )}
       </section>
-    </main>
+
+      <section className="app__achievements">
+        <AchievementCard achievements={achievements.achievements} />
+      </section>
+    </div>
   );
 }
