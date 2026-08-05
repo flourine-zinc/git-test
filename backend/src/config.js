@@ -19,7 +19,8 @@ const normalizeOrigin = (origin) => origin.trim().replace(/\/+$/, "");
 // var would silently fall back to localhost and break OAuth redirects, the
 // session cookie, and CORS for real users. Render dashboard env vars (e.g.
 // APP_REDIRECT_URL, CORS_ORIGINS, COOKIE_SECURE) still override these.
-const PRODUCTION_APP_URL = "https://git-test-seven-dun.vercel.app";
+const PRODUCTION_APP_URL =
+  "https://git-test-flourine-zincs-projects.vercel.app";
 const PRODUCTION_API_URL = "https://git-test-vnpu.onrender.com";
 
 // NODE_ENV is set to "production" by Render automatically.
