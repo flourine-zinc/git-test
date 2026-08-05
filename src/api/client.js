@@ -10,10 +10,32 @@
 // Production fallback: if VITE_API_URL isn't configured on Vercel, default to
 // the Render backend. Local dev still falls back to localhost:4000.
 const PROD_API_URL = "https://git-test-vnpu.onrender.com/api/v1";
+const DEV_API_URL = "http://localhost:4000/api/v1";
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? PROD_API_URL : "http://localhost:4000/api/v1");
+/**
+ * Resolve the API base URL.
+ *
+ * In production we NEVER allow a localhost override: a misconfigured
+ * VITE_API_URL (e.g. copied from a dev environment into Vercel) would silently
+ * point every API call at the visitor's own machine. Only a real, non-local
+ * override is honored; otherwise the deployed Render backend is used.
+ * Localhost is intentionally kept for development only.
+ */
+function resolveBaseUrl() {
+  const configured = import.meta.env.VITE_API_URL;
+
+  if (configured) {
+    const trimmed = String(configured).trim().replace(/\/+$/, "");
+    const isLocalHost =
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(trimmed);
+
+    if (!isLocalHost && trimmed) return trimmed;
+  }
+
+  return import.meta.env.PROD ? PROD_API_URL : DEV_API_URL;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 async function request(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
