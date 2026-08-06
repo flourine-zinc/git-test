@@ -7,32 +7,50 @@
  * (same-site → SameSite=Lax cookies are attached; CORS allowlists the app origin).
  */
 
-// Production fallback: if VITE_API_URL isn't configured on Vercel, default to
-// the Render backend. Local dev still falls back to localhost:4000.
+// Production backend — used whenever no real override is configured.
 const PROD_API_URL = "https://git-test-vnpu.onrender.com/api/v1";
-const DEV_API_URL = "http://localhost:4000/api/v1";
+
+/**
+ * Dev-only fallback URL.
+ *
+ * `import.meta.env.DEV` is statically replaced (true/false) by Vite at build
+ * time, so in a production build this constant is constant-folded to
+ * PROD_API_URL and the "localhost:4000" literal is erased from the bundle.
+ * This guarantees the deployed frontend can never contain a localhost API URL,
+ * even when a developer accidentally builds with a stale local .env.
+ */
+const DEV_API_URL = import.meta.env.DEV
+  ? "http://localhost:4000/api/v1"
+  : PROD_API_URL;
 
 /**
  * Resolve the API base URL.
  *
- * In production we NEVER allow a localhost override: a misconfigured
- * VITE_API_URL (e.g. copied from a dev environment into Vercel) would silently
- * point every API call at the visitor's own machine. Only a real, non-local
- * override is honored; otherwise the deployed Render backend is used.
- * Localhost is intentionally kept for development only.
+ * Development:
+ *   - VITE_API_URL wins if provided (e.g. a remote/staging backend).
+ *   - Otherwise falls back to the local dev server (localhost:4000).
+ *
+ * Production:
+ *   - A real, non-local VITE_API_URL override is honored.
+ *   - A localhost/127.0.0.1 override is ALWAYS rejected (a misconfigured
+ *     VITE_API_URL copied from a dev environment must never point production
+ *     users at their own machine).
+ *   - Defaults to the deployed Render backend.
  */
 function resolveBaseUrl() {
-  const configured = import.meta.env.VITE_API_URL;
+  const configured = String(import.meta.env.VITE_API_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
 
-  if (configured) {
-    const trimmed = String(configured).trim().replace(/\/+$/, "");
+  if (import.meta.env.PROD) {
     const isLocalHost =
-      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(trimmed);
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(configured);
 
-    if (!isLocalHost && trimmed) return trimmed;
+    if (configured && !isLocalHost) return configured;
+    return PROD_API_URL;
   }
 
-  return import.meta.env.PROD ? PROD_API_URL : DEV_API_URL;
+  return configured || DEV_API_URL;
 }
 
 const BASE_URL = resolveBaseUrl();
