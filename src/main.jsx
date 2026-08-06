@@ -14,9 +14,26 @@ ensureStorageVersion();
 // would be incorrectly cached.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
-      console.warn("Service worker registration failed:", error);
-    });
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(() => {
+        // Self-heal stale app shells: a cache version bump (see public/sw.js)
+        // makes the new service worker take control immediately. If this page
+        // was already controlled by an older service worker, reload so the
+        // fresh deployed bundle (with the fixed auth flow) is served instead
+        // of the stale cached shell.
+        if (navigator.serviceWorker.controller) {
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+        }
+      })
+      .catch((error) => {
+        console.warn("Service worker registration failed:", error);
+      });
   });
 }
 

@@ -1,6 +1,9 @@
 /* Service worker for Quest Log — offline app-shell caching. */
 
-const CACHE_NAME = "quest-log-v1";
+// IMPORTANT: Bump this cache version on every deploy that changes the app
+// shell or behavior. The install handler deletes all older caches, so old
+// app shells are purged and the new bundle is fetched from the network.
+const CACHE_NAME = "quest-log-v2";
 
 // Assets to pre-cache on install. The index and built assets are
 // hashed by Vite, so caching "/" covers navigation; runtime caching
@@ -43,8 +46,12 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Cache-first for the app shell, network-first fallback for other
-// same-origin GET requests so fresh content wins when online.
+// NETWORK-FIRST for HTML navigations:
+//  1. Fetch fresh HTML from the network on every navigation.
+//  2. On success, re-cache it (so the cache always holds the latest shell).
+//  3. Fall back to the cached shell ONLY when offline.
+// This guarantees users always get the latest deployed app when online,
+// instead of being stuck on a stale cached app shell forever.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
@@ -52,22 +59,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML navigations: try cache first for instant offline loads,
-  // then fall back to the network and re-cache.
   if (request.mode === "navigate") {
     event.respondWith(
-      caches.match("/").then((cached) => {
-        const network = fetch(request)
-          .then((response) => {
-            if (response?.ok) {
-              const copy = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
-            }
-            return response;
-          })
-          .catch(() => cached);
-        return cached || network;
-      }),
+      fetch(request)
+        .then((response) => {
+          if (response?.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match("/")),
     );
     return;
   }
