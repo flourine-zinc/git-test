@@ -48,16 +48,22 @@ export function useAuth() {
         "profile=",
         data.profile?.id,
       );
+      // TEMPORARY diagnostics — log the EXACT values passed to setUser,
+      // setProfile, and setState. NOTE: read from `data.*` (the response
+      // values), NOT the closure `user` which is null on the first render
+      // (useCallback([]) captures the initial render's state).
+      debugAuth(
+        `checkSession #${seq} setUser(data.user) ←`,
+        data.user,
+        "| setProfile(data.profile) ←",
+        data.profile,
+      );
       setUser(data.user);
       setProfile(data.profile);
-      setState(AUTH_STATE.AUTHENTICATED);
-      // TEMPORARY diagnostics — confirm the value passed to setUser and the
-      // resulting state (verify setUser → state "authenticated" happened).
       debugAuth(
-        `checkSession #${seq} AFTER setUser user=`,
-        user?.id,
-        "→ setState(authenticated) called",
+        `checkSession #${seq} setState(AUTH_STATE.AUTHENTICATED) ← "${AUTH_STATE.AUTHENTICATED}"`,
       );
+      setState(AUTH_STATE.AUTHENTICATED);
     } catch (err) {
       if (seq !== checkSequence.current) {
         debugAuth(

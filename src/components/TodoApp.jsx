@@ -17,6 +17,10 @@ import TodoList from "./TodoList.jsx";
 import TodoFilter from "./TodoFilter.jsx";
 
 export default function TodoApp() {
+  // TEMPORARY auth diagnostics — proof that TodoApp mounts after a
+  // successful authentication state transition.
+  console.debug("[TodoApp] MOUNTED (rendered because state=authenticated)");
+
   const todos = useTodos();
   const progress = useProgress();
   const timer = useTimer();

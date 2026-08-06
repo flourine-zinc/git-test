@@ -3,7 +3,7 @@
 // IMPORTANT: Bump this cache version on every deploy that changes the app
 // shell or behavior. The install handler deletes all older caches, so old
 // app shells are purged and the new bundle is fetched from the network.
-const CACHE_NAME = "quest-log-v2";
+const CACHE_NAME = "quest-log-v3";
 
 // Assets to pre-cache on install. The index and built assets are
 // hashed by Vite, so caching "/" covers navigation; runtime caching
@@ -26,7 +26,20 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      // Best-effort precache. A single failed fetch (for example the origin
+      // responding with an SSO redirect before the user's Vercel session is
+      // established) must NEVER block activation. If addAll rejected, the
+      // new worker stays "installing", skipWaiting() never runs, and the
+      // previous worker keeps serving the stale cached shell forever.
+      .then((cache) =>
+        Promise.allSettled(
+          PRECACHE_URLS.map((url) =>
+            cache
+              .add(url)
+              .catch((err) => console.warn("[sw] precache skipped:", url, err)),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });
