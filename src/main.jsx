@@ -4,6 +4,10 @@ import App from "./App.jsx";
 import { ensureStorageVersion } from "./utils/storage.js";
 import "./styles/styles.css";
 
+// TEMPORARY auth diagnostics — remove after production debugging is done.
+console.debug("[boot] URL:", window.location.href);
+console.debug("[boot] SW controlled:", !!navigator.serviceWorker?.controller);
+
 // Ensure the storage schema version is current before the app loads
 // (runs any migrations needed for older saves). Best-effort: the app
 // still boots when localStorage is unavailable.

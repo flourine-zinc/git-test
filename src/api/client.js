@@ -56,6 +56,19 @@ function resolveBaseUrl() {
 const BASE_URL = resolveBaseUrl();
 
 async function request(path, options = {}) {
+  // TEMPORARY auth diagnostics — remove after production debugging is done.
+  const isAuthReq = path === "/auth/me" || path === "/auth/logout";
+  if (isAuthReq) {
+    console.debug(
+      "[api] REQUEST",
+      path,
+      "credentials=include origin=",
+      window.location.origin,
+      "api=",
+      BASE_URL,
+    );
+  }
+
   const response = await fetch(`${BASE_URL}${path}`, {
     credentials: "include",
     headers: {
@@ -64,6 +77,10 @@ async function request(path, options = {}) {
     },
     ...options,
   });
+
+  if (isAuthReq) {
+    console.debug("[api] RESPONSE", path, response.status, response.url);
+  }
 
   // 204 / empty responses
   if (response.status === 204) return null;
