@@ -17,13 +17,21 @@ function LoadingScreen() {
 export default function App() {
   const { state, loginUrl } = useAuth();
 
-  if (state === "loading") return <LoadingScreen />;
+  // TEMPORARY auth diagnostics — remove after production debugging is done.
+  console.debug("[App] render decision: state=", state);
+
+  if (state === "loading") {
+    console.debug("[App] → rendering <LoadingScreen />");
+    return <LoadingScreen />;
+  }
 
   if (state === "unauthenticated") {
+    console.debug("[App] → rendering <LoginScreen />");
     return <LoginScreen loginUrl={loginUrl} />;
   }
 
   // Authenticated — existing RPG app is preserved unchanged.
   // The todo/XP systems still run on localStorage; server sync is Phase 1.
+  console.debug("[App] → rendering <TodoApp /> (authenticated)");
   return <TodoApp />;
 }

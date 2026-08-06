@@ -51,6 +51,13 @@ export function useAuth() {
       setUser(data.user);
       setProfile(data.profile);
       setState(AUTH_STATE.AUTHENTICATED);
+      // TEMPORARY diagnostics — confirm the value passed to setUser and the
+      // resulting state (verify setUser → state "authenticated" happened).
+      debugAuth(
+        `checkSession #${seq} AFTER setUser user=`,
+        user?.id,
+        "→ setState(authenticated) called",
+      );
     } catch (err) {
       if (seq !== checkSequence.current) {
         debugAuth(
@@ -84,10 +91,17 @@ export function useAuth() {
     checkSession();
   }, [checkSession]);
 
-  // TEMPORARY diagnostics — log every auth-state transition.
+  // TEMPORARY diagnostics — log every auth-state transition, and log the
+  // user object stored in state AFTER setUser has committed.
   useEffect(() => {
-    debugAuth("state →", state, error ? `(error: ${error})` : "");
-  }, [state, error]);
+    debugAuth(
+      "state →",
+      state,
+      error ? `(error: ${error})` : "",
+      "| user in state:",
+      user?.id ?? null,
+    );
+  }, [state, error, user]);
 
   // Retry the session check when the server was unreachable (network/CORS/5xx),
   // so a transient deploy or blip doesn't leave users stuck on Loading.

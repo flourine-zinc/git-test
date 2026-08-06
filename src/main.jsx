@@ -5,6 +5,10 @@ import { ensureStorageVersion } from "./utils/storage.js";
 import "./styles/styles.css";
 
 // TEMPORARY auth diagnostics — remove after production debugging is done.
+// BUNDLE MARKER: this exact string is versioned in git (commit >84269d3).
+// If the deployed Vercel app does NOT print this line with "[App]"/"[useAuth]"
+// logs, you are running a STALE deployed bundle, not this code.
+console.debug("[boot] BUNDLE v3 (auth diagnostics + race guard)");
 console.debug("[boot] URL:", window.location.href);
 console.debug("[boot] SW controlled:", !!navigator.serviceWorker?.controller);
 
